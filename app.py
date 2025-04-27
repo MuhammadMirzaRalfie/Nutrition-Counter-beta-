@@ -146,16 +146,22 @@ with tab1:
             st.write(nutrition_info)
 
 # --- Tab Teks Manual ---
-
 with tab2:
-    manual_text = st.text_area("Masukkan daftar makanan dan jumlahnya (contoh: 2 telur, 1 nasi goreng, 3 tomat):")
+    manual_text = st.text_area(
+        "Masukkan daftar makanan dan jumlahnya (contoh: 2 telur, 1 nasi goreng, 3 tomat):"
+    )
 
-    if manual_text:
-        if st.button("Hitung Nutrisi dari Teks"):
+    hitung_button = st.button("Hitung Nutrisi dari Teks")
+
+    if hitung_button:
+        if manual_text.strip() == "":
+            st.warning("⚠️ Mohon masukkan daftar makanan terlebih dahulu!")
+        else:
             with st.spinner("📊 Menghitung estimasi nutrisi dari teks..."):
                 nutrition_info = calculate_nutrition(manual_text)
                 st.subheader("📈 Estimasi Nutrisi:")
                 st.write(nutrition_info)
+
 
 # --- Tab Suara ---
 with tab3:
