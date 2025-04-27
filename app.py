@@ -6,9 +6,9 @@ from PIL import Image
 import io
 import time
 
-# === KONFIGURASI API ===
-OPENROUTER_API_KEY = st.secrets["OPENROUTER_API_KEY"]
-ASSEMBLYAI_API_KEY = st.secrets["ASSEMBLYAI_API_KEY"]
+# === AMBIL API KEY DARI SECRETS ===
+OPENROUTER_API_KEY = st.secrets["openrouter_api_key"]
+ASSEMBLYAI_API_KEY = st.secrets["assemblyai_api_key"]
 GEMINI_MODEL = "google/gemini-pro-vision"
 GPT_MODEL = "openai/gpt-3.5-turbo"
 
@@ -25,8 +25,6 @@ Instruksi:
   - 3 potong timun
 - Jika jumlah tidak pasti, berikan estimasi wajar berdasarkan gambar.
 - Tidak perlu deskripsi tambahan, hanya daftar saja.
-
-Format hanya seperti contoh di atas. Jangan menambahkan paragraf atau komentar lain.
 """
 
 NUTRITION_CALCULATION_PROMPT = """
@@ -45,10 +43,9 @@ Tugasmu:
   - Protein (g)
   - Lemak (g)
   - Karbohidrat (g)
-- Berikan hasil yang terstruktur dan bersih. Jangan menambahkan komentar atau penjelasan lain.
 """
 
-# === FUNGSI ===
+# === FUNGSI UTAMA ===
 
 def encode_image_to_base64(image):
     buffered = io.BytesIO()
@@ -70,7 +67,8 @@ def openrouter_chat(model, messages):
         result = response.json()
         return result["choices"][0]["message"]["content"]
     else:
-        return f"Error: {response.status_code} - {response.text}"
+        st.error(f"Error OpenRouter: {response.status_code} - {response.text}")
+        return None
 
 def detect_food_from_image(image):
     base64_image = encode_image_to_base64(image)
@@ -94,104 +92,97 @@ def calculate_nutrition(food_list_text):
     ]
     return openrouter_chat(GPT_MODEL, messages)
 
-# === ASSEMBLY AI FUNCTION ===
-
 def transcribe_audio(file):
-    base_url = "https://api.assemblyai.com"
-    headers = {
-        "authorization": ASSEMBLYAI_API_KEY
-    }
+    # Upload file
+    upload_url = "https://api.assemblyai.com/v2/upload"
+    headers = {'authorization': ASSEMBLYAI_API_KEY}
+    upload_response = requests.post(upload_url, headers=headers, files={'file': file})
+    
+    if upload_response.status_code != 200:
+        st.error(f"Gagal upload audio! ({upload_response.status_code}) {upload_response.text}")
+        return None
 
-    # 1. Upload audio file
-    upload_endpoint = base_url + "/v2/upload"
-    response = requests.post(upload_endpoint, headers=headers, data=file)
-    if response.status_code != 200:
-        st.error(f"Upload gagal: {response.text}")
-        return "Upload gagal!"
+    audio_url = upload_response.json()['upload_url']
 
-    audio_url = response.json()["upload_url"]
+    # Request transcription
+    transcript_url = "https://api.assemblyai.com/v2/transcript"
+    transcript_request = {"audio_url": audio_url, "language_code": "id"}
+    transcript_response = requests.post(transcript_url, headers=headers, json=transcript_request)
 
-    # 2. Request transcription
-    transcript_endpoint = base_url + "/v2/transcript"
-    data = {
-        "audio_url": audio_url,
-        "speech_model": "universal"  # pakai 'universal' default kayak di dokumentasi
-    }
-    response = requests.post(transcript_endpoint, json=data, headers=headers)
-    if response.status_code != 200:
-        st.error(f"Request transkrip gagal: {response.text}")
-        return "Request transkrip gagal!"
+    if transcript_response.status_code != 200:
+        st.error(f"Gagal minta transkrip! ({transcript_response.status_code}) {transcript_response.text}")
+        return None
 
-    transcript_id = response.json()["id"]
-    polling_endpoint = base_url + "/v2/transcript/" + transcript_id
+    transcript_id = transcript_response.json()['id']
 
-    # 3. Polling hasil transkrip
+    # Polling untuk hasil
+    polling_url = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
     while True:
-        poll_response = requests.get(polling_endpoint, headers=headers)
-        result = poll_response.json()
+        poll_response = requests.get(polling_url, headers=headers)
+        status = poll_response.json()['status']
 
-        if result['status'] == 'completed':
-            return result['text']
-        elif result['status'] == 'error':
-            st.error(f"Transkripsi gagal: {result['error']}")
-            return "Transkripsi gagal!"
+        if status == 'completed':
+            return poll_response.json()['text']
+        elif status == 'failed':
+            st.error("Transkripsi gagal!")
+            return None
         else:
             time.sleep(3)
 
-
 # === STREAMLIT APP ===
 
-st.title("🍽️ Estimasi Nutrisi dari Gambar, Teks, atau Suara! ")
+st.title("🍽️ Estimasi Nutrisi dari Gambar, Teks, atau Suara!")
 
 tab1, tab2, tab3 = st.tabs(["📷 Gambar", "📝 Teks Manual", "🎙️ Suara"])
 
-# --- Tab Gambar ---
+# Tab Gambar
 with tab1:
     uploaded_file = st.file_uploader("Upload gambar makanan", type=["jpg", "jpeg", "png"])
-
     if uploaded_file:
         image = Image.open(uploaded_file)
         st.image(image, caption="Gambar Diupload", use_container_width=True)
 
-        with st.spinner("🔍 Mendeteksi makanan dalam gambar..."):
+        with st.spinner("🔍 Mendeteksi makanan..."):
             detected_food = detect_food_from_image(image)
-            st.subheader("🍴 Makanan Terdeteksi:")
-            st.write(detected_food)
+            if detected_food:
+                st.subheader("🍴 Makanan Terdeteksi:")
+                st.write(detected_food)
 
-        with st.spinner("📊 Menghitung estimasi nutrisi..."):
-            nutrition_info = calculate_nutrition(detected_food)
-            st.subheader("📈 Estimasi Nutrisi:")
-            st.write(nutrition_info)
+                with st.spinner("📊 Menghitung nutrisi..."):
+                    nutrition_info = calculate_nutrition(detected_food)
+                    if nutrition_info:
+                        st.subheader("📈 Estimasi Nutrisi:")
+                        st.write(nutrition_info)
 
-# --- Tab Teks Manual ---
+# Tab Teks
 with tab2:
     manual_text = st.text_area(
         "Masukkan daftar makanan dan jumlahnya (contoh: 2 telur, 1 nasi goreng, 3 tomat):"
     )
-
     hitung_button = st.button("Hitung Nutrisi dari Teks")
-
+    
     if hitung_button:
         if manual_text.strip() == "":
-            st.warning("⚠️ Mohon masukkan daftar makanan terlebih dahulu!")
+            st.warning("⚠️ Masukkan daftar makanan terlebih dahulu.")
         else:
-            with st.spinner("📊 Menghitung estimasi nutrisi dari teks..."):
+            with st.spinner("📊 Menghitung nutrisi..."):
                 nutrition_info = calculate_nutrition(manual_text)
-                st.subheader("📈 Estimasi Nutrisi:")
-                st.write(nutrition_info)
+                if nutrition_info:
+                    st.subheader("📈 Estimasi Nutrisi:")
+                    st.write(nutrition_info)
 
-
-# --- Tab Suara ---
+# Tab Suara
 with tab3:
     audio_file = st.file_uploader("Upload file suara (.wav, .mp3, .m4a)", type=["wav", "mp3", "m4a"])
-
     if audio_file:
         with st.spinner("🎧 Mengubah suara menjadi teks..."):
             transcribed_text = transcribe_audio(audio_file)
-            st.subheader("📝 Teks dari Suara:")
-            st.write(transcribed_text)
+            if transcribed_text:
+                st.subheader("📝 Teks dari Suara:")
+                st.write(transcribed_text)
 
-        with st.spinner("📊 Menghitung estimasi nutrisi dari suara..."):
-            nutrition_info = calculate_nutrition(transcribed_text)
-            st.subheader("📈 Estimasi Nutrisi:")
-            st.write(nutrition_info)
+                with st.spinner("📊 Menghitung nutrisi dari suara..."):
+                    nutrition_info = calculate_nutrition(transcribed_text)
+                    if nutrition_info:
+                        st.subheader("📈 Estimasi Nutrisi:")
+                        st.write(nutrition_info)
