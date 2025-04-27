@@ -97,33 +97,51 @@ def calculate_nutrition(food_list_text):
 # === ASSEMBLY AI FUNCTION ===
 
 def transcribe_audio(file):
-    # 1. Upload file
-    upload_url = "https://api.assemblyai.com/v2/upload"
-    headers = {'authorization': ASSEMBLYAI_API_KEY}
-    response = requests.post(upload_url, headers=headers, files={'file': file})
-    audio_url = response.json()['upload_url']
+    base_url = "https://api.assemblyai.com"
+    headers = {
+        "authorization": ASSEMBLYAI_API_KEY
+    }
+
+    # 1. Upload audio file
+    upload_endpoint = base_url + "/v2/upload"
+    response = requests.post(upload_endpoint, headers=headers, data=file)
+    if response.status_code != 200:
+        st.error(f"Upload gagal: {response.text}")
+        return "Upload gagal!"
+
+    audio_url = response.json()["upload_url"]
 
     # 2. Request transcription
-    transcript_url = "https://api.assemblyai.com/v2/transcript"
-    transcript_request = {"audio_url": audio_url, "language_code": "id"}
-    response = requests.post(transcript_url, headers=headers, json=transcript_request)
-    transcript_id = response.json()['id']
+    transcript_endpoint = base_url + "/v2/transcript"
+    data = {
+        "audio_url": audio_url,
+        "speech_model": "universal"  # pakai 'universal' default kayak di dokumentasi
+    }
+    response = requests.post(transcript_endpoint, json=data, headers=headers)
+    if response.status_code != 200:
+        st.error(f"Request transkrip gagal: {response.text}")
+        return "Request transkrip gagal!"
 
-    # 3. Polling untuk hasilnya
-    polling_url = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
+    transcript_id = response.json()["id"]
+    polling_endpoint = base_url + "/v2/transcript/" + transcript_id
+
+    # 3. Polling hasil transkrip
     while True:
-        poll_response = requests.get(polling_url, headers=headers)
-        status = poll_response.json()['status']
-        if status == 'completed':
-            return poll_response.json()['text']
-        elif status == 'failed':
+        poll_response = requests.get(polling_endpoint, headers=headers)
+        result = poll_response.json()
+
+        if result['status'] == 'completed':
+            return result['text']
+        elif result['status'] == 'error':
+            st.error(f"Transkripsi gagal: {result['error']}")
             return "Transkripsi gagal!"
         else:
             time.sleep(3)
 
+
 # === STREAMLIT APP ===
 
-st.title("🍽️ Estimasi Nutrisi dari Gambar, Teks, atau Suara! (Gemini + GPT 3.5 + AssemblyAI)")
+st.title("🍽️ Estimasi Nutrisi dari Gambar, Teks, atau Suara! ")
 
 tab1, tab2, tab3 = st.tabs(["📷 Gambar", "📝 Teks Manual", "🎙️ Suara"])
 
