@@ -93,39 +93,44 @@ def calculate_nutrition(food_list_text):
     return openrouter_chat(GPT_MODEL, messages)
 
 def transcribe_audio(file):
-    # Upload file
-    upload_url = "https://api.assemblyai.com/v2/upload"
-    headers = {'authorization': ASSEMBLYAI_API_KEY}
-    upload_response = requests.post(upload_url, headers=headers, files={'file': file})
-    
-    if upload_response.status_code != 200:
-        st.error(f"Gagal upload audio! ({upload_response.status_code}) {upload_response.text}")
-        return None
+    base_url = "https://api.assemblyai.com"
+    headers = {
+        "authorization": ASSEMBLYAI_API_KEY
+    }
 
-    audio_url = upload_response.json()['upload_url']
+    # 1. Upload audio file
+    upload_endpoint = base_url + "/v2/upload"
+    response = requests.post(upload_endpoint, headers=headers, data=file)
+    if response.status_code != 200:
+        st.error(f"Upload gagal: {response.text}")
+        return "Upload gagal!"
 
-    # Request transcription
-    transcript_url = "https://api.assemblyai.com/v2/transcript"
-    transcript_request = {"audio_url": audio_url, "language_code": "id"}
-    transcript_response = requests.post(transcript_url, headers=headers, json=transcript_request)
+    audio_url = response.json()["upload_url"]
 
-    if transcript_response.status_code != 200:
-        st.error(f"Gagal minta transkrip! ({transcript_response.status_code}) {transcript_response.text}")
-        return None
+    # 2. Request transcription
+    transcript_endpoint = base_url + "/v2/transcript"
+    data = {
+        "audio_url": audio_url,
+        "speech_model": "universal"  # pakai 'universal' default kayak di dokumentasi
+    }
+    response = requests.post(transcript_endpoint, json=data, headers=headers)
+    if response.status_code != 200:
+        st.error(f"Request transkrip gagal: {response.text}")
+        return "Request transkrip gagal!"
 
-    transcript_id = transcript_response.json()['id']
+    transcript_id = response.json()["id"]
+    polling_endpoint = base_url + "/v2/transcript/" + transcript_id
 
-    # Polling untuk hasil
-    polling_url = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
+    # 3. Polling hasil transkrip
     while True:
-        poll_response = requests.get(polling_url, headers=headers)
-        status = poll_response.json()['status']
+        poll_response = requests.get(polling_endpoint, headers=headers)
+        result = poll_response.json()
 
-        if status == 'completed':
-            return poll_response.json()['text']
-        elif status == 'failed':
-            st.error("Transkripsi gagal!")
-            return None
+        if result['status'] == 'completed':
+            return result['text']
+        elif result['status'] == 'error':
+            st.error(f"Transkripsi gagal: {result['error']}")
+            return "Transkripsi gagal!"
         else:
             time.sleep(3)
 
