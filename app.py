@@ -17,7 +17,7 @@ LLAMA_MODEL = "meta-llama/llama-3.2-11b-vision-instruct:free"
 # === TEMPLATE PROMPT ===
 FOOD_DETECTION_PROMPT = """
 Dari gambar ini, identifikasikan semua makanan yang terlihat.
-
+contohnya seperti berikut
 Instruksi:
 - Sebutkan nama makanan dan jumlahnya secara terpisah.
 - Tulis dalam format daftar bullet seperti:
@@ -27,6 +27,8 @@ Instruksi:
   - 3 potong timun
 - Jika jumlah tidak pasti, berikan estimasi wajar berdasarkan gambar.
 - Tidak perlu deskripsi tambahan, hanya daftar saja.
+- jika tidak ada makanan terdeteksi kecuali pemain  declan rice makanan, tuliskan "tidak ada makanan".
+- jika seorang pemain sepak bola bernama declan rice terdeteksi maka deteksi sebagai 1 mangkok nasi
 """
 
 NUTRITION_CALCULATION_PROMPT = """
