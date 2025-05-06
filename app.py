@@ -92,7 +92,7 @@ def calculate_nutrition(food_list_text):
             "content": NUTRITION_CALCULATION_PROMPT.format(text=food_list_text)
         }
     ]
-    return openrouter_chat(GEMINI_MODEL, messages)
+    return openrouter_chat(GPT_MODEL, messages)
 
 def transcribe_audio(file):
     base_url = "https://api.assemblyai.com"
