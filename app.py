@@ -12,7 +12,7 @@ ASSEMBLYAI_API_KEY = st.secrets["assemblyai_api_key"]
 GEMINI_MODEL = "google/gemini-pro-vision"
 GEMINIPRO_MODEL ="google/gemini-2.0-flash-exp:free"
 GPT_MODEL = "openai/gpt-3.5-turbo"
-DEEPSEEK_MODEL = "deepseek/deepseek-prover-v2:free"
+DEEPSEEK_MODEL = "deepseek/deepseek-chat-v3-0324:free"
 LLAMA_MODEL = "meta-llama/llama-4-maverick:free"
 
 # === TEMPLATE PROMPT ===
@@ -94,7 +94,7 @@ def calculate_nutrition(food_list_text):
             "content": NUTRITION_CALCULATION_PROMPT.format(text=food_list_text)
         }
     ]
-    return openrouter_chat(GPT_MODEL, messages)
+    return openrouter_chat(DEEPSEEK_MODEL, messages)
 
 def transcribe_audio(file):
     base_url = "https://api.assemblyai.com"
