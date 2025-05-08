@@ -12,7 +12,7 @@ ASSEMBLYAI_API_KEY = st.secrets["assemblyai_api_key"]
 GEMINI_MODEL = "google/gemini-pro-vision"
 GPT_MODEL = "openai/gpt-3.5-turbo"
 DEEPSEEK_MODEL = "deepseek/deepseek-prover-v2:free"
-LLAMA_MODEL = "meta-llama/llama-3.2-11b-vision-instruct:free"
+LLAMA_MODEL = "meta-llama/llama-4-maverick:free"
 
 # === TEMPLATE PROMPT ===
 FOOD_DETECTION_PROMPT = """
@@ -84,7 +84,7 @@ def detect_food_from_image(image):
             ]
         }
     ]
-    return openrouter_chat(GEMINI_MODEL, messages)
+    return openrouter_chat(LLAMA_MODEL, messages)
 
 def calculate_nutrition(food_list_text):
     messages = [
