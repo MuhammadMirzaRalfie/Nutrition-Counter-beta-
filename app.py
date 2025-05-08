@@ -10,6 +10,7 @@ import time
 OPENROUTER_API_KEY = st.secrets["openrouter_api_key"]
 ASSEMBLYAI_API_KEY = st.secrets["assemblyai_api_key"]
 GEMINI_MODEL = "google/gemini-pro-vision"
+GEMINIPRO_MODEL ="google/gemini-2.0-flash-exp:free"
 GPT_MODEL = "openai/gpt-3.5-turbo"
 DEEPSEEK_MODEL = "deepseek/deepseek-prover-v2:free"
 LLAMA_MODEL = "meta-llama/llama-4-maverick:free"
@@ -84,7 +85,7 @@ def detect_food_from_image(image):
             ]
         }
     ]
-    return openrouter_chat(LLAMA_MODEL, messages)
+    return openrouter_chat(GEMINIPRO_MODEL, messages)
 
 def calculate_nutrition(food_list_text):
     messages = [
