@@ -27,8 +27,7 @@ Instruksi:
   - 3 potong timun
 - Jika jumlah tidak pasti, berikan estimasi wajar berdasarkan gambar.
 - Tidak perlu deskripsi tambahan, hanya daftar saja.
-- jika tidak ada makanan terdeteksi kecuali pemain  declan rice makanan, tuliskan "tidak ada makanan".
-- jika seorang pemain sepak bola bernama declan rice terdeteksi maka deteksi sebagai 1 mangkok nasi
+- jika tidak terdeteksi makanan, tuliskan "Tidak ada makanan yang terlihat."
 """
 
 NUTRITION_CALCULATION_PROMPT = """
