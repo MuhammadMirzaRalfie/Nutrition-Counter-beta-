@@ -47,6 +47,8 @@ Tugasmu:
   - Protein (g)
   - Lemak (g)
   - Karbohidrat (g)
+  
+  cukup tampilkan tabelnya saja dan tidak usah menampilkan yang lain
 """
 
 # === FUNGSI UTAMA ===
