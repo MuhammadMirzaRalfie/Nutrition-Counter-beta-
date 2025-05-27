@@ -14,6 +14,7 @@ GEMINIPRO_MODEL ="google/gemini-2.0-flash-exp:free"
 GPT_MODEL = "openai/gpt-3.5-turbo"
 DEEPSEEK_MODEL = "deepseek/deepseek-chat-v3-0324:free"
 LLAMA_MODEL = "meta-llama/llama-4-maverick:free"
+GEMMA_MODEL = "google/gemma-3-27b-it:free"
 
 # === TEMPLATE PROMPT ===
 FOOD_DETECTION_PROMPT = """
@@ -87,7 +88,7 @@ def detect_food_from_image(image):
             ]
         }
     ]
-    return openrouter_chat(GEMINIPRO_MODEL, messages)
+    return openrouter_chat(GEMMA_MODEL, messages)
 
 def calculate_nutrition(food_list_text):
     messages = [
